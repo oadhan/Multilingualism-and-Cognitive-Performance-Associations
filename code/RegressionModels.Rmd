@@ -1,0 +1,46 @@
+---
+title: "Lab 2 - Multilingualism and Cognitive Performance"
+author: "Oviya Adhan"
+date: "2025-04-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Install packages, include=FALSE}
+#install.packages("here")
+library(tidyverse)
+library(dplyr)
+library(here)
+library(ggplot2)
+library(lmtest)
+library(sandwich)
+```
+
+```{r Load Data, include=FALSE}
+df <- read.csv(here("data", "processed", "multilingualism.csv"))
+```
+## Step 1 - Create Regression Models
+
+
+Below are the summaries of our regression models. 
+
+The first model:
+X: Number of Languages
+Y: Errors made in Cognitive Flexibility Test 
+
+The second model (and the most detailed):
+X: Number of Languages, Gender, Age, Education, Income
+Y: Errors made in Cognitive Flexibility Test 
+
+```{r Create models}
+simple_model <- all_model <- lm(cog_flex_errors ~ number_lang, data = df)
+summary(simple_model)
+
+all_model <- lm(cog_flex_errors ~ number_lang + gender + age + education + income, data = df)
+summary(all_model)
+```
+

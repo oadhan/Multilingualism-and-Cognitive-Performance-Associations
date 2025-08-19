@@ -1,0 +1,277 @@
+---
+title: "Lab 2 - Multilingualism and Cognitive Performance"
+author: "Oviya Adhan, Helin Yilmaz, Nory Arroyo"
+date: "2025-04-17"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Install packages, include=FALSE}
+#install.packages("here")
+library(tidyverse)
+library(dplyr)
+library(here)
+library(ggplot2)
+library(lmtest)
+library(sandwich)
+library(gridExtra)
+library(car)
+```
+# Introduction
+Past research on multilingual individuals has shown mixed results on the benefits multilingualism has on cognitive ability. As globalization continues to blend cultures across borders around the world, the rate of multilingualism increases ~1~. By understanding the concurring traits, we can get some insight into the characteristics that we can expect to become more prevalent along with multilingualism, particularly in regards to cognitive ability. To explore the question "What is the relationship between multilingualism and cognitive ability?" we sourced the "Multilingualism and Cognitive Performance" dataset from https://dataverse.nl/, a research data repository.
+
+## Data
+This data was collected from adults over the age of 65 from three provinces in the northern Netherlands, a reportedly highly multilingual location. With a focused opportunity to investigate multilingualism, we can uncover relationships that can inform the approach to implementing multilingual education earlier in life. For each participant, the data includes results from two cognitive tests and a questionnaire covering aspects of their language knowledge, wellbeing, health, and personal traits. The results of the first cognitive test noted the number of errors made in a Wisconsin Card Sorting (cognitive flexibility) test, while the second tested Flanker Task (attention and inhibitory control). 
+
+To measure cognitive ability, we focused on the errors made in the Wisconsin Card Sorting (WCST) which tests for the test taker's cognitive flexibility. They are asked to sort cards based on certain characteristics, such as color, shape, or number. Throughout the duration of the test, the rules of the task changes and scoring is based on how many errors are made following rule changes ~2~. This variable is numeric, discrete, and ranges from 4 to 29.To measure multilingualism, we focused on the variable that represented the number of languages known by the participant. This variables is numeric, discrete, and ranges from 1 to 5.With this localized dataset, controlling for geographic location and stage of life, we set out to explore the relationship between multilingualism and cognitive ability.
+
+```{r Load Data, include=FALSE}
+df <- read.csv(here("data", "processed", "multilingualism.csv"))
+summary(df)
+```
+# Step 1 - Create Regression Models
+
+First, we wanted to explore the relationship between multilingualism and cognitive ability without input from other variables in the dataset. We chose the number of languages variable from the questionnaire to represent multilingualism and number of errors made on the cognitive flexibility test to represent cognitive ability. Below is the summary of this univariate regression model: \newline
+
+\quad X: Number of Languages \newline
+
+\quad Y: Errors made in Cognitive Flexibility Test (WCST)
+
+```{r Create univariate model, echo = FALSE}
+simple_model <- all_model <- lm(cog_flex_errors ~ number_lang, data = df)
+summary(simple_model)$coefficients
+```
+From the summary we can see that the first, univariate regression model shows a minimal inverse relationship between number of languages and number of errors on the cognitive flexibility test suggesting that an increase of number of languages is linked to a decrease in errors. The coefficient for number of languages is -0.2466, indicating that for each additional language known, there is an average decrease of 0.24 errors made in the cognitive flexibility test. Being a small, statistically insignificant coefficient estimate at a p-value of 0.441, this alone is not enough to show a strong relationship between multilingualism and cognitive flexibility. 
+
+From plotting the number of languages against the errors made in the cognitive flexibility test (Appendix - Table 1), we can see a slightly negative relationship, confirming our statistical findings.
+
+There are likely other variables that might impact this relationship. To explore this possibility, we revised our model to include other x variables covering standard socioeconomic factors including gender, age, education, and income to hopefully add more color to our analysis. Summary of the revised, multivariate model: \newline
+
+\quad X: Number of Languages, Gender, Age, Education, Income \newline
+
+\quad Y: Errors made in Cognitive Flexibility Test 
+
+```{r Create multivariate model, echo = FALSE}
+all_model <- lm(cog_flex_errors ~ number_lang + gender + age + education + income, data = df)
+summary(all_model)$coefficients
+```
+We can see that the coefficient estimate of the number of languages in the multivariate regression model shows a less strong relationship (a 0.06 decrease in errors for every additional language) with cognitive flexibility test errors compared to the univariate regression model while maintaining a statistically non significant coefficient estimate.The two other variables that stand out are age and education which show statistically significant coefficient estimates. With all else constant, for every additional year of age, there is a 0.15 increase in errors made while with every additional level of highest completed education in Dutch, there is a 1.05 decrease in the number of errors made on the WCST. As for the remaining two, gender and income level, they do not have statistically significant coefficients. For gender, as gender increases by 1, the number of errors made decreases by 1.05. With gender being noted as 1 for male, 2 for female, this shows better cognitive flexibility scores for women on average, although practically insignificant. For income, as income level by month increases by 1 level, the WCST errors decrease by 0.14, suggesting practical insignificance.
+
+With the highly diverse and interesting outcome, we decided to focus on our second model to further explore the relationship between these variables.
+
+# Step 2 - Evaluate Assumptions of Model 2
+
+## Evaluate the IID Assumption
+Given that Model 2 has multiple predictors for errors made in the cognitive flexibility test, we can visually inspect if there are any patterns like clustering using various scatter plots. Visually, as observed in the scatter plots (Appendix - Table 2) of the predictors versus the cognitive flexibility errors, there are no strong visual clusters of data suggesting that IID is not violated.
+
+```{r, include = FALSE}
+
+# Set up the plot area for a 2x3 grid
+par(mfrow = c(2, 3))
+
+# Scatterplot for relationship between Number of Languages and Errors
+plot(df$number_lang, df$cog_flex_errors, 
+     main = "Number of Languages vs Errors", 
+     xlab = "Number of Languages", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Gender and Errors
+plot(df$gender, df$cog_flex_errors, 
+     main = "Gender vs Errors", 
+     xlab = "Gender", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Age and Errors
+plot(df$age, df$cog_flex_errors, 
+     main = "Age vs Errors", 
+     xlab = "Age", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Education and Errors
+plot(df$education, df$cog_flex_errors, 
+     main = "Education vs Errors", 
+     xlab = "Education", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Income and Errors
+plot(df$income, df$cog_flex_errors, 
+     main = "Income vs Errors", 
+     xlab = "Income", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+```
+
+Looking into the data collection method, the data were collected from a sample of 387 65-95 year old adults, recruited through open calls in local media (e.g. radio, newspapers), local fliers, and by word-of-mouth through the personal networks of the research team. This method of convenience sampling, especially through the researchers' personal networks, may be a limitation to the generalizability of our findings due to the highly localized scope. Common regional influences like education, healthcare, and sociocultural environment could have some unknown effect on the general distribution of the observations. These limitations suggest that findings should be interpreted carefully, especially when considering broader applicability beyond the studied population. However, considering that the participants were each recruited and tested individually, therefore having no direct influence on one another, we can comfortably assume that the resulting data of each individual is independent and identically distributed.  ~3~
+
+## Evaluate the Linear Conditional Expectation Assumption
+To evaluate the linear conditional expectation assumption, we can plot the residuals vs. fitted values for a multivariate regression. 
+```{r, include = FALSE}
+# Residuals vs fitted for Model 2
+
+resid_v_fitted <- ggplot(data = NULL, aes(x = all_model$fitted.values, y = all_model$residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(
+    title = "Assessing LCE of Model 2: Residuals vs Fitted Values",
+    x = "Fitted Values",
+    y = "Residuals"
+  ) +
+ theme(plot.title = element_text(hjust = 0.5))
+```
+The residuals vs fitted values plot (Appendix - Table 3) shows a fairly random scatter, suggesting that the Linear Conditional Expectation (LCE) assumption is reasonably met.
+
+```{r, echo = FALSE}
+# Residuals from model 2
+residuals <- all_model$residuals
+
+# Plot residuals vs. each predictor
+par(mfrow = c(2, 3))
+
+plot(df$age, residuals, main = "Residuals vs. Age", xlab = "Age", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+plot(as.numeric(df$gender), residuals, main = "Residuals vs. Gender", xlab = "Gender", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+plot(as.numeric(df$education), residuals, main = "Residuals vs. Education", xlab = "Education", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+plot(as.numeric(df$income), residuals, main = "Residuals vs. Income", xlab = "Income", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+plot(df$number_lang, residuals, main = "Residuals vs. # of Langs", xlab = "Num of languages", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+```
+Based on the plots of residuals versus fitted values and residuals versus each predictor variable, the Linear Conditional Expectation (LCE) assumption appears to not be strongly violated. There are no strong, visually apparent non-linear patterns, although it is important to note that variance somewhat decreases at higher ages. Also, it's more difficult to discern a trend for Gender due to the binary nature of the variable. Thus, given the complexity of the model and how these factors interact, it's possible that some effects are nonlinear or interact in ways not captured by a basic linear model. While residual plots and prediction diagnostics help flag major issues, they don’t guarantee that the model fully reflects the data structure. So, although linear regression is a useful starting point, it's important to be cautious when interpreting coefficients as reflecting simple, linear relationships.
+
+## Evaluate the No Perfect Collinearity Assumption
+```{r, include = FALSE}
+lm(cog_flex_errors ~ number_lang + gender + age + education + income, data = df)
+summary(all_model)
+```
+As observed when running our regression models, all of our variables are still included. If we had perfect collinearity between our input variables, the model would automatically drop one of our x variables. For near perfect collinearity, we can compare the relationship between standard error and coefficient estimates, notably the number of languages and income have a higher standard error than the absolute value of their coefficient estimates. Additionally, their coefficients are not significant, which can lead us to believe that they may have a relationship with the other factors that have significant coefficients.  
+
+```{r Variance Inflation Factor, echo = FALSE}
+vif(all_model)
+```
+
+To further detect multicollinearity, we can take a look at the variance inflation factor (VIF) of each of our x terms. The VIF of each term in our model ranges from 1.00 to 1.18 portraying a low correlation between the factors, but practically insignificant, being on the lower end of 1 to 5, to accept as a violation of near perfect collinearity for any of these terms. 
+
+## Evaluate the Homoskedastic Conditional Variance (Constant Conditional Variance) Assumption
+
+```{r, echo = FALSE, fig.height= 2, fig.width= 4, fig.align= 'center'}
+d <- df
+
+d <- d %>% 
+  mutate(
+    model_1_predictions = predict(all_model), 
+    model_1_residuals   = resid(all_model),
+    model_1_residuals2  = resid(all_model) ^ 2, 
+  )
+
+plot_model_1 <- d %>% 
+  ggplot(aes(x = model_1_predictions, y = model_1_residuals)) +
+  geom_point() +
+  ggtitle('Residuals vs Predictions for Model 2') + 
+  labs(y = 'Residuals', x = 'Predictions') + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+model_restricted_hetero_1   <- lm(model_1_residuals2 ~ 1, data = d)
+model_unrestricted_hetero_1 <- lm(model_1_residuals2 ~ 1 + number_lang + gender + age + education + income, data = d)
+plot_model_1
+anova(model_restricted_hetero_1, model_unrestricted_hetero_1)
+
+```
+For our ocular test we can observe that the distribution between residuals and predictions is randomly spread out with no distinct clustering or patterns. To statistically check for heteroskedasticity we then performed a Breusch-Pagan test, by hand. We found that there is no evidence to reject the null hypothesis of homoscedasticity. Therefore, we can likely validate this assumption. 
+
+## Evaluate the Normally Distributed Errors Assumption
+
+```{r, echo = FALSE, fig.height= 3, fig.width= 5, fig.align= 'center'}
+par(mfrow = c(1, 1))
+residuals <- resid(all_model)
+qqnorm(residuals, main = "Normal- QQ" )
+qqline(residuals, col = "blue")
+```
+
+As seen in our QQ-plot, the theoretical quantiles and sample quantiles follow a linear pattern that falls approximately across the line. Therefore, we can likely validate the normality assumption. 
+
+# Conclusion
+
+These models aim to investigate the relationship between multilingualism and cognitive performance. The first model, depicting the relationship between number of languages and errors made on WCST, showed a statistically and practically insignificant relationship. The second model, depicting the relationship between number of languages, age, income, gender, education, and the number of WCST errors, showed a statistically and practically insignificant relationship between gender, income, and number of languages with errors made on WCST. On the other hand, age and level of education, showed statistically significant relationships with WCST errors. However with respective coefficients of 0.15528 and 
+-1.05116, it appears that only level of education has a practically significant impact on cognitive flexibility.
+
+For future studies, looking further into these characteristics and how they impact cognitive performance across varied age ranges and locations can offer a diverse perspective into this unique relationship.
+
+
+\newpage
+# Appendix
+https://github.com/mids-w203/lab-2-girl-power/ 
+
+## References
+1 - Housman, P. (2023, November 15). Multilingualism on rise in US: Illusion or reality? https://www.american.edu/cas/news/multilingualism-on-rise-in-us-illusion-or-reality.cfm 
+
+2 - Grant, D. A., & Berg, E. A. (1948). Wisconsin Card Sorting Test. Psychological Assessment Resources. https://www.parinc.com/products/WCST
+
+3 - Pot, A., Keijzer, M., & de Bot, K. (2018). Intensity of Multilingual Language Use Predicts Cognitive Performance in Some Multilingual Older Adults. Brain sciences, 8(5), 92. https://doi.org/10.3390/brainsci8050092
+
+## Tables
+[Table 1] Model 1 Scatterplot
+```{r, echo = FALSE, fig.height= 3, fig.width= 4, fig.align= 'center'}
+
+# Scatterplot for relationship between Number of Languages and Errors
+plot(df$number_lang, df$cog_flex_errors,
+     main = "Representation of Model 1",
+     xlab = "Number of Languages",
+     ylab = "Errors in Cognitive Flexibility Test")
+abline(simple_model, col = "red")
+```
+
+[Table 2] IID Scatterplots
+
+```{r, echo = FALSE}
+# Set up the plot area for a 2x3 grid
+par(mfrow = c(2, 3))
+
+# Scatterplot for relationship between Number of Languages and Errors
+plot(df$number_lang, df$cog_flex_errors, 
+     main = "Number of Languages vs Errors", 
+     xlab = "Number of Languages", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Gender and Errors
+plot(df$gender, df$cog_flex_errors, 
+     main = "Gender vs Errors", 
+     xlab = "Gender", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Age and Errors
+plot(df$age, df$cog_flex_errors, 
+     main = "Age vs Errors", 
+     xlab = "Age", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Education and Errors
+plot(df$education, df$cog_flex_errors, 
+     main = "Education vs Errors", 
+     xlab = "Education", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+
+# Scatterplot for relationship between Income and Errors
+plot(df$income, df$cog_flex_errors, 
+     main = "Income vs Errors", 
+     xlab = "Income", 
+     ylab = "Errors made in Cognitive Flexibility Test")
+```
+
+
+[Table 3] Residual v. Fitted
+```{r, fig.height= 3, fig.width= 4, fig.align= 'center'}
+resid_v_fitted
+```
+
